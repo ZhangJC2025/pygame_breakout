@@ -1,3 +1,3 @@
-source env/bin/activate
+source .env/bin/activate
 
 python my_pygame.py &>/dev/null
