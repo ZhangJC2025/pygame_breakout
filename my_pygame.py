@@ -82,6 +82,20 @@ class Ball:
         self.hit_box.x = self.x - self.radius
         self.hit_box.y = self.y - self.radius
 
+    def rebound(self, other):
+        """
+        TODO : better way to decide the direction
+
+        if (
+            self.y < other.y - other.height // 2
+            or self.y > other.y + other.height // 2
+            ):
+                self.speed_y = -self.speed_y
+        else:
+            self.speed_x = -self.speed_x
+        """
+        self.speed_y = -self.speed_y
+
 
 class Block(Paddle):
     def __init__(self, x, y, width, height):
@@ -111,6 +125,10 @@ class Block_generator:
     def draw(self, surface):
         for block in self.block_array:
             block.draw(surface)
+
+    def destory(self, ball):
+        if ball in self.block_array:
+            self.block_array.remove(ball)
 
 
 def input_handler(eneity, dt):
@@ -167,16 +185,11 @@ def main():
 
         # collider
         if ball.hit_box.colliderect(paddle.hit_box):
-            """
-            if (
-                ball.y < paddle.y - paddle.height // 2
-                or ball.y > paddle.y + paddle.height // 2
-            ):
-                ball.speed_y = -ball.speed_y
-            else:
-                ball.speed_x = -ball.speed_x
-            """
-            ball.speed_y = -ball.speed_y
+            ball.rebound(paddle)
+        for block in block_generator.block_array:
+            if ball.hit_box.colliderect(block.hit_box):
+                block_generator.destory(block)
+                ball.rebound(block)
 
         paddle.draw(screen)
         ball.draw(screen)
