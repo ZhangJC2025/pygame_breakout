@@ -18,20 +18,19 @@ DEBUG_MODE = False
 
 
 class Paddle:
-    def __init__(self, x, y):
-        self.width = 100
-        self.height = 20
+    def __init__(self, x, y, width, height):
+        self.width = width  # 100
+        self.height = height  # 20
         self.x = x - self.width // 2
         self.y = y - self.height // 2
         self.color = white
-        self.hit_box = pg.Rect(self.x, self.y, 100, 20)
+        self.hit_box = pg.Rect(self.x, self.y, self.width, self.height)
 
     def draw(self, screen):
         pg.draw.rect(
             screen,
             self.color,
             (self.x, self.y, self.width, self.height),
-            border_radius=8,
         )
         if DEBUG_MODE:
             pg.draw.rect(screen, green, self.hit_box, 3)
@@ -85,11 +84,33 @@ class Ball:
 
 
 class Block(Paddle):
-    def __init__(self, x, y):
-        super().__init__(x, y)
-        self.height = 10
-        self.width = 10
-        self.hit_box = pg.Rect(self.x, self.y, 10, 10)
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height)
+
+    def draw(self, screen):
+        return super().draw(screen)
+
+    def move(self, speed):
+        return super().move(speed)
+
+
+class Block_generator:
+    def __init__(self, x_range, y_range, line, row):
+        self.line = line
+        self.row = row
+        self.x_range = x_range
+        self.y_range = y_range
+        self.block_array = []
+        for i in range(1, line):
+            for j in range(1, row):
+                y = (y_range[1] - y_range[0]) / line * i + y_range[0]
+                x = (x_range[1] - x_range[0]) / row * j + x_range[0]
+
+                self.block_array.append(Block(x, y, 10, 10))
+
+    def draw(self, surface):
+        for block in self.block_array:
+            block.draw(surface)
 
 
 def input_handler(eneity, dt):
@@ -123,8 +144,9 @@ def main():
     pg.display.set_caption("Breakout")
 
     # entitys
-    paddle = Paddle(screen.get_width() / 2, screen.get_height() - 100)
+    paddle = Paddle(screen.get_width() / 2, screen.get_height() - 100, 100, 20)
     ball = Ball(screen.get_width() / 2, screen.get_height() / 2)
+    block_generator = Block_generator((0, WIDTH), (20, 200), 10, 30)
 
     clock = pg.time.Clock()
     dt = 0
@@ -158,6 +180,7 @@ def main():
 
         paddle.draw(screen)
         ball.draw(screen)
+        block_generator.draw(screen)
 
         dt = clock.tick(60) / 1000
 
