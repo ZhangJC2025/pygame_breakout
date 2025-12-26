@@ -146,6 +146,8 @@ def input_handler(eneity, dt):
             DEBUG_MODE = False
         else:
             DEBUG_MODE = True
+    if not GAME_STATUS and keys[pg.K_SPACE]:
+        main()
 
 
 def ui_render(surface, dt):
@@ -174,9 +176,9 @@ def dead_page(surface):
     font_render(
         surface,
         30,
-        "press esc to escape",
+        "press esc to escape or space to restart",
         black,
-        (surface.get_width() - 100, surface.get_height() - 20),
+        (surface.get_width() - 200, surface.get_height() - 20),
     )  # esc tips
     font_render(
         surface,
@@ -196,8 +198,16 @@ def dead_page(surface):
     pg.display.update()
 
 
+def game_init():
+    global GAME_STATUS
+    GAME_STATUS = True
+    global SCORE
+    SCORE = 0
+
+
 def main():
     pg.init()
+    game_init()
 
     screen = pg.display.set_mode((WIDTH, HEIGTH))
     pg.display.set_caption("Breakout")
