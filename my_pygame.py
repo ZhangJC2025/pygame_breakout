@@ -1,5 +1,6 @@
 import pygame as pg
 import sys
+import time
 
 # colors
 black = 0, 0, 0
@@ -129,6 +130,8 @@ class Block_generator:
     def destory(self, ball):
         if ball in self.block_array:
             self.block_array.remove(ball)
+            global SCORE
+            SCORE += 1
 
 
 def input_handler(eneity, dt):
@@ -145,15 +148,16 @@ def input_handler(eneity, dt):
             DEBUG_MODE = True
 
 
-def fps_render(surface, dt):
+def ui_render(surface, dt):
+    # fps render
     if dt:
         fps = int(1 / dt)
     else:
         fps = 0
+    font_render(surface, 40, f"fps:{fps}", white, (50, 20))
 
-    font = pg.font.Font(None, 40)
-    text = font.render(f"fps:{fps}", True, white)
-    surface.blit(text, (0, 0))
+    # score render
+    font_render(surface, 40, f"score:{SCORE}", white, (60, surface.get_height() - 20))
 
 
 def font_render(surface, size, text, color, position):
@@ -169,10 +173,10 @@ def dead_page(surface):
 
     font_render(
         surface,
-        20,
+        30,
         "press esc to escape",
         black,
-        (surface.get_width() - 160, surface.get_height() - 20),
+        (surface.get_width() - 100, surface.get_height() - 20),
     )  # esc tips
     font_render(
         surface,
@@ -197,10 +201,10 @@ def main():
 
     screen = pg.display.set_mode((WIDTH, HEIGTH))
     pg.display.set_caption("Breakout")
-
+    start = time.time()
     # entitys
     paddle = Paddle(screen.get_width() / 2, screen.get_height() - 100, 100, 20)
-    ball = Ball(screen.get_width() / 2, screen.get_height() / 2)
+    ball = Ball(screen.get_width() / 2 - 150, screen.get_height() / 2)
     block_generator = Block_generator((0, WIDTH), (20, 200), 10, 30)
 
     clock = pg.time.Clock()
@@ -208,6 +212,10 @@ def main():
 
     running = True
     while running:
+        if GAME_STATUS:
+            playing_time = time.time() - start
+            pg.display.set_caption(f"play Breakout {playing_time:.2f}s")
+
         for e in pg.event.get():
             if e.type == pg.QUIT or e.type == pg.KEYDOWN and e.key == pg.K_ESCAPE:
                 running = False
@@ -216,7 +224,7 @@ def main():
 
         input_handler(paddle, dt)
 
-        fps_render(screen, dt)
+        ui_render(screen, dt)
 
         ball.move(dt)
 
