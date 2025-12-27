@@ -132,6 +132,15 @@ class Block_generator:
             self.block_array.remove(ball)
             global SCORE
             SCORE += 1
+        if self.block_array == []:
+            win_page()
+
+
+def win_page():
+    """
+    TODO: win page
+    """
+    pass
 
 
 def input_handler(eneity, dt):
@@ -163,7 +172,11 @@ def ui_render(surface, dt):
 
 
 def font_render(surface, size, text, color, position):
-    font = pg.font.Font(None, size)
+    try:
+        font = pg.font.Font("fonts/CutePixel.ttf", size)
+    except FileNotFoundError:
+        print("fonts file not found!")
+        font = pg.font.Font(None, size)
     text = font.render(text, True, color)
     text_rect = text.get_rect()
     text_rect.center = position
@@ -178,7 +191,7 @@ def dead_page(surface):
         30,
         "press esc to escape or space to restart",
         black,
-        (surface.get_width() - 200, surface.get_height() - 20),
+        (surface.get_width() - 240, surface.get_height() - 20),
     )  # esc tips
     font_render(
         surface,
@@ -208,6 +221,9 @@ def game_init():
 def main():
     pg.init()
     game_init()
+
+    # right declare
+    print("font used in game: Cute Pixel\nsource: fontmeme.com/ziti/cute-pixel-font")
 
     screen = pg.display.set_mode((WIDTH, HEIGTH))
     pg.display.set_caption("Breakout")
