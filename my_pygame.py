@@ -8,6 +8,7 @@ white = 255, 255, 255
 red = 255, 0, 0
 green = 0, 255, 0
 blue = 0, 0, 255
+yellow = 255, 255, 0
 BACKGROUND_COLOR = black
 
 # window size
@@ -17,11 +18,14 @@ HEIGTH = 600
 # debug mode off
 DEBUG_MODE = False
 
-# game status false to stop
-GAME_STATUS = True
+# game status
+# 0 playing 1 win -1 lose
+GAME_STATUS = 0
 
 # game score
 SCORE = 0
+
+cheat_code = []
 
 
 class Paddle:
@@ -86,7 +90,8 @@ class Ball:
             """self.y = HEIGTH - self.radius
             self.speed_y = -self.speed_y"""
             global GAME_STATUS
-            GAME_STATUS = False
+            if not GAME_STATUS == 1:
+                GAME_STATUS = -1
 
         self.hit_box.x = self.x - self.radius
         self.hit_box.y = self.y - self.radius
@@ -133,30 +138,72 @@ class Block_generator:
             global SCORE
             SCORE += 1
         if self.block_array == []:
-            win_page()
+            global GAME_STATUS
+            GAME_STATUS = 1
 
 
-def win_page():
-    """
-    TODO: win page
-    """
-    pass
+def win_page(surface):
+    surface.fill(yellow)
+
+    font_render(
+        surface,
+        30,
+        "press esc to escape or space to restart",
+        black,
+        (surface.get_width() - 240, surface.get_height() - 20),
+    )  # esc tips
+    font_render(
+        surface,
+        80,
+        "You win!",
+        black,
+        (surface.get_width() / 2, surface.get_height() / 2),
+    )  # words for winner
+    font_render(
+        surface,
+        40,
+        f"your score is {SCORE}",
+        black,
+        (surface.get_width() / 2, surface.get_height() / 2 + 40),
+    )  # player's score
+
+    pg.display.update()
 
 
-def input_handler(eneity, dt):
+def game_init():
+    global cheat_code
+    cheat_code = []
+    global GAME_STATUS
+    GAME_STATUS = 0
+    global SCORE
+    SCORE = 0
+
+
+def input_handler(paddle, dt, block_generator):
     keys = pg.key.get_pressed()
     if keys[pg.K_a]:
-        eneity.move(-600 * dt)
+        paddle.move(-600 * dt)
     if keys[pg.K_d]:
-        eneity.move(600 * dt)
+        paddle.move(600 * dt)
     if keys[pg.K_F3]:
         global DEBUG_MODE
         if DEBUG_MODE:
             DEBUG_MODE = False
         else:
             DEBUG_MODE = True
-    if not GAME_STATUS and keys[pg.K_SPACE]:
+    if not GAME_STATUS == 0 and keys[pg.K_SPACE]:
         main()
+
+    # cheat code
+    if keys[pg.K_z] and "z" not in cheat_code:
+        cheat_code.append("z")
+    if keys[pg.K_j] and "j" not in cheat_code:
+        cheat_code.append("j")
+    if keys[pg.K_c] and "c" not in cheat_code:
+        cheat_code.append("c")
+
+    if "z" in cheat_code and "j" in cheat_code and "c" in cheat_code:
+        cheat_mode(block_generator)
 
 
 def ui_render(surface, dt):
@@ -211,11 +258,13 @@ def dead_page(surface):
     pg.display.update()
 
 
-def game_init():
+def cheat_mode(block_generator):
     global GAME_STATUS
-    GAME_STATUS = True
-    global SCORE
-    SCORE = 0
+    if GAME_STATUS == -1:
+        return
+    for block in block_generator.block_array:
+        block_generator.destory(block)
+    GAME_STATUS = 1
 
 
 def main():
@@ -238,7 +287,7 @@ def main():
 
     running = True
     while running:
-        if GAME_STATUS:
+        if GAME_STATUS == 0:
             playing_time = time.time() - start
             pg.display.set_caption(f"play Breakout {playing_time:.2f}s")
 
@@ -248,7 +297,7 @@ def main():
 
         screen.fill(BACKGROUND_COLOR)
 
-        input_handler(paddle, dt)
+        input_handler(paddle, dt, block_generator)
 
         ui_render(screen, dt)
 
@@ -268,10 +317,12 @@ def main():
 
         dt = clock.tick(60) / 1000
 
-        if GAME_STATUS:
+        if GAME_STATUS == 0:
             pg.display.update()
-        else:
+        elif GAME_STATUS == -1:
             dead_page(screen)
+        else:
+            win_page(screen)
 
     pg.quit()
     sys.exit()
