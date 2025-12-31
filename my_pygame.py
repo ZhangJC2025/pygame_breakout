@@ -19,13 +19,21 @@ HEIGTH = 600
 DEBUG_MODE = False
 
 # game status
-# 0 playing 1 win -1 lose
+# 0 playing
+# 1 win
+# -1 lose
+# 2 pause
+# -2 exit
 GAME_STATUS = 0
 
 # game score
 SCORE = 0
 
+# to detect wheter cheat code in input
 cheat_code = []
+
+# if first run ?
+FIRST_RUN = True
 
 
 class Paddle:
@@ -90,7 +98,7 @@ class Ball:
             """self.y = HEIGTH - self.radius
             self.speed_y = -self.speed_y"""
             global GAME_STATUS
-            if not GAME_STATUS == 1:
+            if GAME_STATUS == 0:
                 GAME_STATUS = -1
 
         self.hit_box.x = self.x - self.radius
@@ -103,7 +111,7 @@ class Ball:
         self.speed_y = -self.speed_y
 
 
-class Block(Paddle):
+class Brick(Paddle):
     def __init__(self, x, y, width, height):
         super().__init__(x, y, width, height)
 
@@ -114,32 +122,43 @@ class Block(Paddle):
         return super().move(speed)
 
 
-class Block_generator:
+class Brick_generator:
     def __init__(self, x_range, y_range, line, row):
         self.line = line
         self.row = row
         self.x_range = x_range
         self.y_range = y_range
-        self.block_array = []
+        self.brick_array = []
         for i in range(1, line):
             for j in range(1, row):
                 y = (y_range[1] - y_range[0]) / line * i + y_range[0]
                 x = (x_range[1] - x_range[0]) / row * j + x_range[0]
 
-                self.block_array.append(Block(x, y, 10, 10))
+                self.brick_array.append(Brick(x, y, 10, 10))
 
     def draw(self, surface):
-        for block in self.block_array:
-            block.draw(surface)
+        for brick in self.brick_array:
+            brick.draw(surface)
 
     def destory(self, ball):
-        if ball in self.block_array:
-            self.block_array.remove(ball)
+        if ball in self.brick_array:
+            self.brick_array.remove(ball)
             global SCORE
             SCORE += 1
-        if self.block_array == []:
+        if self.brick_array == []:
             global GAME_STATUS
             GAME_STATUS = 1
+
+
+def pause_page(surface):
+    font_render(
+        surface,
+        30,
+        "press esc to escape or space to continue",
+        white,
+        (surface.get_width() - 240, surface.get_height() - 20),
+    )  # esc tips
+    pg.display.update()
 
 
 def win_page(surface):
@@ -179,20 +198,25 @@ def game_init():
     SCORE = 0
 
 
-def input_handler(paddle, dt, block_generator):
+def input_handler(paddle, dt, brick_generator):
+    global GAME_STATUS
     keys = pg.key.get_pressed()
-    if keys[pg.K_a]:
-        paddle.move(-600 * dt)
-    if keys[pg.K_d]:
-        paddle.move(600 * dt)
-    if keys[pg.K_F3]:
-        global DEBUG_MODE
-        if DEBUG_MODE:
-            DEBUG_MODE = False
-        else:
-            DEBUG_MODE = True
-    if not GAME_STATUS == 0 and keys[pg.K_SPACE]:
-        main()
+    if GAME_STATUS == 0:
+        if keys[pg.K_a]:
+            paddle.move(-600 * dt)
+        if keys[pg.K_d]:
+            paddle.move(600 * dt)
+
+    if keys[pg.K_p]:
+        if GAME_STATUS == 0:
+            GAME_STATUS = 2
+    if keys[pg.K_ESCAPE]:
+        GAME_STATUS = -2
+    if keys[pg.K_SPACE]:
+        if GAME_STATUS == 2:
+            GAME_STATUS = 0
+        elif GAME_STATUS == -1 or GAME_STATUS == 1:
+            main()
 
     # cheat code
     if keys[pg.K_z] and "z" not in cheat_code:
@@ -203,10 +227,10 @@ def input_handler(paddle, dt, block_generator):
         cheat_code.append("c")
 
     if "z" in cheat_code and "j" in cheat_code and "c" in cheat_code:
-        cheat_mode(block_generator)
+        cheat_mode(brick_generator)
 
 
-def ui_render(surface, dt):
+def ui_render(surface, dt, ball):
     # fps render
     if dt:
         fps = int(1 / dt)
@@ -216,6 +240,13 @@ def ui_render(surface, dt):
 
     # score render
     font_render(surface, 40, f"score:{SCORE}", white, (60, surface.get_height() - 20))
+    font_render(
+        surface,
+        40,
+        f"Ball in {int(ball.x)},{int(ball.y)}",
+        white,
+        (surface.get_width() - 120, 20),
+    )
 
 
 def font_render(surface, size, text, color, position):
@@ -258,12 +289,12 @@ def dead_page(surface):
     pg.display.update()
 
 
-def cheat_mode(block_generator):
+def cheat_mode(brick_generator):
     global GAME_STATUS
     if GAME_STATUS == -1:
         return
-    for block in block_generator.block_array:
-        block_generator.destory(block)
+    for brick in brick_generator.brick_array:
+        brick_generator.destory(brick)
     GAME_STATUS = 1
 
 
@@ -271,8 +302,13 @@ def main():
     pg.init()
     game_init()
 
+    global FIRST_RUN
     # right declare
-    print("font used in game: Cute Pixel\nsource: fontmeme.com/ziti/cute-pixel-font")
+    if FIRST_RUN:
+        print(
+            "Font used in game: Cute Pixel\nSource: fontmeme.com/ziti/cute-pixel-font"
+        )
+        FIRST_RUN = False
 
     screen = pg.display.set_mode((WIDTH, HEIGTH))
     pg.display.set_caption("Breakout")
@@ -280,40 +316,53 @@ def main():
     # entitys
     paddle = Paddle(screen.get_width() / 2, screen.get_height() - 100, 100, 20)
     ball = Ball(screen.get_width() / 2 - 150, screen.get_height() / 2)
-    block_generator = Block_generator((0, WIDTH), (20, 200), 10, 30)
+    brick_generator = Brick_generator((0, WIDTH), (20, 200), 10, 30)
 
     clock = pg.time.Clock()
     dt = 0
 
     running = True
     while running:
+        for e in pg.event.get():
+            if e.type == pg.QUIT:
+                running = False
+            if e.type == pg.KEYDOWN and e.key == pg.K_F3:
+                global DEBUG_MODE
+                if DEBUG_MODE:
+                    DEBUG_MODE = False
+                else:
+                    DEBUG_MODE = True
+
+        input_handler(paddle, dt, brick_generator)
+
+        if GAME_STATUS == 2:
+            pause_page(screen)
+            # continue
+            pass
+
+        if GAME_STATUS == -2:
+            running = False
+
         if GAME_STATUS == 0:
             playing_time = time.time() - start
             pg.display.set_caption(f"play Breakout {playing_time:.2f}s")
 
-        for e in pg.event.get():
-            if e.type == pg.QUIT or e.type == pg.KEYDOWN and e.key == pg.K_ESCAPE:
-                running = False
+            screen.fill(BACKGROUND_COLOR)
 
-        screen.fill(BACKGROUND_COLOR)
-
-        input_handler(paddle, dt, block_generator)
-
-        ui_render(screen, dt)
-
-        ball.move(dt)
-
-        # collider
-        if ball.hit_box.colliderect(paddle.hit_box):
-            ball.rebound()
-        for block in block_generator.block_array:
-            if ball.hit_box.colliderect(block.hit_box):
-                block_generator.destory(block)
+            ui_render(screen, dt, ball)
+            if GAME_STATUS == 0:
+                ball.move(dt)
+            # collider
+            if ball.hit_box.colliderect(paddle.hit_box):
                 ball.rebound()
+            for brick in brick_generator.brick_array:
+                if ball.hit_box.colliderect(brick.hit_box):
+                    brick_generator.destory(brick)
+                    ball.rebound()
 
-        paddle.draw(screen)
-        ball.draw(screen)
-        block_generator.draw(screen)
+            paddle.draw(screen)
+            ball.draw(screen)
+            brick_generator.draw(screen)
 
         dt = clock.tick(60) / 1000
 
@@ -321,7 +370,7 @@ def main():
             pg.display.update()
         elif GAME_STATUS == -1:
             dead_page(screen)
-        else:
+        elif GAME_STATUS == 1:
             win_page(screen)
 
     pg.quit()
