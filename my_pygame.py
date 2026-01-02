@@ -104,10 +104,14 @@ class Ball:
         self.hit_box.x = self.x - self.radius
         self.hit_box.y = self.y - self.radius
 
-    def rebound(self):
-        """
-        TODO : better way to decide the direction
-        """
+    def rebound(self, other, direct):
+        if direct == "up":
+            self.y = other.y - self.radius
+        elif direct == "down":
+            self.y = other.y + self.radius
+        # do nothing
+        else:
+            pass
         self.speed_y = -self.speed_y
 
 
@@ -352,19 +356,22 @@ def main():
             ui_render(screen, dt, ball)
             if GAME_STATUS == 0:
                 ball.move(dt)
+
             # collider
             if ball.hit_box.colliderect(paddle.hit_box):
-                ball.rebound()
+                ball.rebound(paddle, "up")
+
             for brick in brick_generator.brick_array:
                 if ball.hit_box.colliderect(brick.hit_box):
+                    ball.rebound(brick, "no")
+
                     brick_generator.destory(brick)
-                    ball.rebound()
 
             paddle.draw(screen)
             ball.draw(screen)
             brick_generator.draw(screen)
 
-        dt = clock.tick(60) / 1000
+        dt = clock.tick(240) / 1000
 
         if GAME_STATUS == 0:
             pg.display.update()
