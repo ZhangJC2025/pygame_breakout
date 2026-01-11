@@ -1,3 +1,5 @@
+# main.py -- A small game called break out
+# coded by ZhangJC2025
 import pygame as pg
 import sys
 import time
@@ -9,6 +11,7 @@ red = 255, 0, 0
 green = 0, 255, 0
 blue = 0, 0, 255
 yellow = 255, 255, 0
+
 BACKGROUND_COLOR = black
 
 # window size
@@ -19,17 +22,13 @@ HEIGTH = 600
 DEBUG_MODE = False
 
 # game status
-# 0 playing
-# 1 win
-# -1 lose
-# 2 pause
-# -2 exit
-GAME_STATUS = 0
+GAME_STATUS = "PLAYING"
 
 # game score
 SCORE = 0
 
 # to detect wheter cheat code in input
+cheat_keys = {pg.K_w: "w", pg.K_i: "i", pg.K_n: "n"}
 cheat_code = []
 
 # if first run ?
@@ -37,12 +36,12 @@ FIRST_RUN = True
 
 
 class Paddle:
-    def __init__(self, x, y, width, height):
-        self.width = width  # 100
-        self.height = height  # 20
+    def __init__(self, x, y, width=100, height=20, color=white):
+        self.width = width
+        self.height = height
         self.x = x - self.width // 2
         self.y = y - self.height // 2
-        self.color = white
+        self.color = color
         self.hit_box = pg.Rect(self.x, self.y, self.width, self.height)
 
     def draw(self, screen):
@@ -66,17 +65,20 @@ class Paddle:
 
 
 class Ball:
-    def __init__(self, x, y):
-        self.radius = 10
+    def __init__(self, x, y, radius=10, speed_x=400, speed_y=400, color=red):
+        self.radius = radius
         self.x = x - self.radius
         self.y = y - self.radius
-        self.speed_x = 400
-        self.speed_y = 400
-        self.color = red
-        self.hit_box = pg.Rect(self.x - self.radius, self.y - self.radius, 20, 20)
+        self.speed_x = speed_x
+        self.speed_y = speed_y
+        self.color = color
+        self.hit_box = pg.Rect(
+            self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2
+        )
 
     def draw(self, screen):
         pg.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+
         if DEBUG_MODE:
             pg.draw.rect(screen, green, self.hit_box, 3)
 
@@ -95,23 +97,19 @@ class Ball:
             self.y = self.radius
             self.speed_y = -self.speed_y
         if self.y > HEIGTH - self.radius:
-            """self.y = HEIGTH - self.radius
-            self.speed_y = -self.speed_y"""
+            # dead detect
             global GAME_STATUS
-            if GAME_STATUS == 0:
-                GAME_STATUS = -1
+            if GAME_STATUS == "PLAYING":
+                GAME_STATUS = "LOSE"
 
         self.hit_box.x = self.x - self.radius
         self.hit_box.y = self.y - self.radius
 
-    def rebound(self, other, direct):
+    def rebound(self, others, direct):
         if direct == "up":
-            self.y = other.y - self.radius
+            self.y = others.y - self.radius
         elif direct == "down":
-            self.y = other.y + self.radius
-        # do nothing
-        else:
-            pass
+            self.y = others.y + self.radius
         self.speed_y = -self.speed_y
 
 
@@ -120,10 +118,10 @@ class Brick(Paddle):
         super().__init__(x, y, width, height)
 
     def draw(self, screen):
-        return super().draw(screen)
+        super().draw(screen)
 
     def move(self, speed):
-        return super().move(speed)
+        super().move(speed)
 
 
 class Brick_generator:
@@ -133,8 +131,8 @@ class Brick_generator:
         self.x_range = x_range
         self.y_range = y_range
         self.brick_array = []
-        for i in range(1, line):
-            for j in range(1, row):
+        for i in range(line):
+            for j in range(row):
                 y = (y_range[1] - y_range[0]) / line * i + y_range[0]
                 x = (x_range[1] - x_range[0]) / row * j + x_range[0]
 
@@ -151,7 +149,8 @@ class Brick_generator:
             SCORE += 1
         if self.brick_array == []:
             global GAME_STATUS
-            GAME_STATUS = 1
+            if GAME_STATUS == 1:
+                GAME_STATUS = 1
 
 
 def pause_page(surface):
@@ -162,6 +161,7 @@ def pause_page(surface):
         white,
         (surface.get_width() - 240, surface.get_height() - 20),
     )  # esc tips
+
     pg.display.update()
 
 
@@ -197,40 +197,48 @@ def game_init():
     global cheat_code
     cheat_code = []
     global GAME_STATUS
-    GAME_STATUS = 0
+    GAME_STATUS = "PLAYING"
     global SCORE
     SCORE = 0
 
 
 def input_handler(paddle, dt, brick_generator):
-    global GAME_STATUS
     keys = pg.key.get_pressed()
-    if GAME_STATUS == 0:
+
+    global GAME_STATUS
+    if GAME_STATUS == "PLAYING":
         if keys[pg.K_a]:
             paddle.move(-600 * dt)
         if keys[pg.K_d]:
             paddle.move(600 * dt)
 
-    if keys[pg.K_p]:
-        if GAME_STATUS == 0:
-            GAME_STATUS = 2
-    if keys[pg.K_ESCAPE]:
-        GAME_STATUS = -2
-    if keys[pg.K_SPACE]:
-        if GAME_STATUS == 2:
-            GAME_STATUS = 0
-        elif GAME_STATUS == -1 or GAME_STATUS == 1:
+        if keys[pg.K_p]:
+            GAME_STATUS = "PAUSE"
+
+    elif GAME_STATUS == "PAUSE":
+        if keys[pg.K_SPACE]:
+            GAME_STATUS = "PLAYING"
+
+    elif GAME_STATUS == "LOSE":
+        if keys[pg.K_SPACE]:
+            main()
+    elif GAME_STATUS == "WIN":
+        if keys[pg.K_SPACE]:
             main()
 
-    # cheat code
-    if keys[pg.K_z] and "z" not in cheat_code:
-        cheat_code.append("z")
-    if keys[pg.K_j] and "j" not in cheat_code:
-        cheat_code.append("j")
-    if keys[pg.K_c] and "c" not in cheat_code:
-        cheat_code.append("c")
+    if keys[pg.K_ESCAPE]:
+        GAME_STATUS = "EXIT"
 
-    if "z" in cheat_code and "j" in cheat_code and "c" in cheat_code:
+    # cheat code
+    global cheat_code
+    for cheat_key, key_char in cheat_keys.items():
+        if keys[cheat_key] and key_char not in cheat_code:
+            cheat_code.append(key_char)
+    isCHEATED = True
+    for cheat_key, key_char in cheat_keys.items():
+        if key_char not in cheat_code:
+            isCHEATED = False
+    if isCHEATED:
         cheat_mode(brick_generator)
 
 
@@ -257,7 +265,7 @@ def font_render(surface, size, text, color, position):
     try:
         font = pg.font.Font("fonts/CutePixel.ttf", size)
     except FileNotFoundError:
-        print("fonts file not found!")
+        print("Fonts file not found!")
         font = pg.font.Font(None, size)
     text = font.render(text, True, color)
     text_rect = text.get_rect()
@@ -295,11 +303,11 @@ def dead_page(surface):
 
 def cheat_mode(brick_generator):
     global GAME_STATUS
-    if GAME_STATUS == -1:
+    if GAME_STATUS == "LOSE":
         return
     for brick in brick_generator.brick_array:
         brick_generator.destory(brick)
-    GAME_STATUS = 1
+    GAME_STATUS = "WIN"
 
 
 def main():
@@ -309,9 +317,7 @@ def main():
     global FIRST_RUN
     # right declare
     if FIRST_RUN:
-        print(
-            "Font used in game: Cute Pixel\nSource: fontmeme.com/ziti/cute-pixel-font"
-        )
+        print("Font: Cute Pixel\nSource: fontmeme.com/ziti/cute-pixel-font")
         FIRST_RUN = False
 
     screen = pg.display.set_mode((WIDTH, HEIGTH))
@@ -339,22 +345,22 @@ def main():
 
         input_handler(paddle, dt, brick_generator)
 
-        if GAME_STATUS == 2:
+        if GAME_STATUS == "PAUSE":
             pause_page(screen)
             # continue
             pass
 
-        if GAME_STATUS == -2:
+        if GAME_STATUS == "EXIT":
             running = False
 
-        if GAME_STATUS == 0:
+        if GAME_STATUS == "PLAYING":
             playing_time = time.time() - start
             pg.display.set_caption(f"play Breakout {playing_time:.2f}s")
 
             screen.fill(BACKGROUND_COLOR)
 
             ui_render(screen, dt, ball)
-            if GAME_STATUS == 0:
+            if GAME_STATUS == "PLAYING":
                 ball.move(dt)
 
             # collider
@@ -373,11 +379,11 @@ def main():
 
         dt = clock.tick(240) / 1000
 
-        if GAME_STATUS == 0:
+        if GAME_STATUS == "PLAYING":
             pg.display.update()
-        elif GAME_STATUS == -1:
+        elif GAME_STATUS == "LOSE":
             dead_page(screen)
-        elif GAME_STATUS == 1:
+        elif GAME_STATUS == "WIN":
             win_page(screen)
 
     pg.quit()
