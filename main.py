@@ -248,7 +248,7 @@ def ui_render(surface, dt, ball):
         fps = int(1 / dt)
     else:
         fps = 0
-    font_render(surface, 40, f"fps:{fps}", white, (50, 20))
+    font_render(surface, 40, f"fps:{fps}", white, (60, 20))
 
     # score render
     font_render(surface, 40, f"score:{SCORE}", white, (60, surface.get_height() - 20))
@@ -326,7 +326,7 @@ def main():
     # entitys
     paddle = Paddle(screen.get_width() / 2, screen.get_height() - 100, 100, 20)
     ball = Ball(screen.get_width() / 2 - 150, screen.get_height() / 2)
-    brick_generator = Brick_generator((0, WIDTH), (20, 200), 10, 30)
+    brick_generator = Brick_generator((10, WIDTH), (40, 200), 10, 30)
 
     clock = pg.time.Clock()
     dt = 0
